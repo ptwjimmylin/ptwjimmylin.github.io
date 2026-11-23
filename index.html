@@ -12,19 +12,81 @@
       height: 100vh;
       overflow: hidden;
       background-color: #f3f4f6;
+      position: relative;
     }
 
-    /* 左側導覽列 */
+    /* 左側導覽列（改為懸浮抽屜式，支援平滑收合） */
     .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
       width: 230px;
       background-color: #1e293b;
       color: #f8fafc;
       display: flex;
       flex-direction: column;
-      flex-shrink: 0;
+      z-index: 1000;
+      box-shadow: 4px 0 16px rgba(0, 0, 0, 0.25);
+      transform: translateX(0);
+      transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
     }
+
+    /* 收合狀態：往左移出畫面 */
+    .sidebar.collapsed {
+      transform: translateX(-100%);
+      box-shadow: none;
+    }
+
+    /* 左側邊緣喚出小標籤 */
+    .sidebar-tab {
+      position: absolute;
+      top: 50%;
+      right: -30px;
+      transform: translateY(-50%);
+      width: 30px;
+      padding: 14px 6px;
+      background-color: #1e293b;
+      color: #f8fafc;
+      border-radius: 0 8px 8px 0;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 3px 0 10px rgba(0, 0, 0, 0.2);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, background-color 0.2s ease, width 0.2s ease;
+      user-select: none;
+    }
+
+    /* 只有在側邊欄收合時才顯示小標籤 */
+    .sidebar.collapsed .sidebar-tab {
+      opacity: 0.78;
+      pointer-events: auto;
+    }
+    .sidebar.collapsed .sidebar-tab:hover {
+      opacity: 1;
+      background-color: #2563eb;
+      width: 34px;
+      right: -34px;
+    }
+
+    .tab-arrow {
+      font-size: 12px;
+      font-weight: bold;
+    }
+    .tab-text {
+      writing-mode: vertical-rl;
+      font-size: 12px;
+      letter-spacing: 2px;
+      font-weight: 500;
+    }
+
     .brand {
-      padding: 20px 18px;
+      padding: 18px;
       font-size: 16px;
       font-weight: bold;
       border-bottom: 1px solid #334155;
@@ -57,21 +119,41 @@
     .nav-item:hover { background-color: #334155; color: #ffffff; }
     .nav-item.active { background-color: #2563eb; color: #ffffff; font-weight: 600; }
 
-    /* 右側主內容區 */
+    /* 右側主內容區（佔滿 100% 寬度，視野最大化） */
     .main-area {
       flex: 1;
+      width: 100%;
       display: flex;
       flex-direction: column;
       min-width: 0;
     }
     .topbar {
-      height: 50px;
+      height: 46px;
       background-color: #ffffff;
       border-bottom: 1px solid #e2e8f0;
       padding: 0 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+    }
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .menu-trigger-btn {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #334155;
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .menu-trigger-btn:hover {
+      background: #e2e8f0;
+      color: #0f172a;
     }
     .current-title {
       font-size: 15px;
@@ -87,7 +169,7 @@
       color: #475569;
       background-color: #ffffff;
       text-decoration: none;
-      padding: 6px 12px;
+      padding: 5px 11px;
       border: 1px solid #cbd5e1;
       border-radius: 5px;
       cursor: pointer;
@@ -108,29 +190,29 @@
       border: none;
       display: block;
     }
-
-    /* 手機與小螢幕自適應 */
-    @media (max-width: 768px) {
-      body { flex-direction: column; }
-      .sidebar { width: 100%; height: auto; }
-      .brand { padding: 12px 16px; }
-      .nav-list { display: flex; overflow-x: auto; padding: 8px 12px; gap: 6px; }
-      .nav-item { width: auto; white-space: nowrap; margin-bottom: 0; padding: 8px 12px; }
-    }
   </style>
 </head>
 <body>
 
-  <!-- 左側選單 -->
-  <aside class="sidebar">
+  <!-- 左側可自動收合選單 -->
+  <aside class="sidebar" id="sidebar">
     <div class="brand">🛠️ PTW 作業整合平台</div>
     <nav class="nav-list" id="nav-list"></nav>
+
+    <!-- 收合後留在左側邊緣的小標籤 -->
+    <div class="sidebar-tab" id="sidebar-tab" title="移入展開工具選單">
+      <span class="tab-arrow">❯</span>
+      <span class="tab-text">工具選單</span>
+    </div>
   </aside>
 
-  <!-- 右側顯示區 -->
+  <!-- 右側主畫面 -->
   <main class="main-area">
     <header class="topbar">
-      <span class="current-title" id="current-title">載入中...</span>
+      <div class="topbar-left">
+        <button type="button" class="menu-trigger-btn" id="menu-trigger-btn" title="展開左側選單">☰ 切換工具</button>
+        <span class="current-title" id="current-title">載入中...</span>
+      </div>
       <div class="topbar-actions">
         <button type="button" class="action-btn" id="reload-btn" title="重新整理目前工具">↻ 重新載入</button>
         <a href="#" target="_blank" rel="noopener noreferrer" class="action-btn" id="open-ext-btn">↗ 在新分頁開啟</a>
@@ -162,13 +244,16 @@
         name: "⚙️ HW 系統工具",
         url: "https://ptwjimmylin.github.io/HW/"
       }
-      // 【新增範例】：未來有新網頁時，複製下面這行格式貼在上面項目後方（記得前一個結尾要加逗號）
+      // 【新增範例】：未來有新網頁時，複製下面這行格式貼在上面項目後方
       // ,{ id: "new-tool", name: "📦 新工具名稱", url: "https://ptwjimmylin.github.io/你的新專案名稱/" }
     ];
 
     // =========================================================================
     // 【系統核心程式】以下無需修改
     // =========================================================================
+    const sidebar = document.getElementById("sidebar");
+    const sidebarTab = document.getElementById("sidebar-tab");
+    const menuTriggerBtn = document.getElementById("menu-trigger-btn");
     const navList = document.getElementById("nav-list");
     const appFrame = document.getElementById("app-frame");
     const currentTitle = document.getElementById("current-title");
@@ -176,57 +261,82 @@
     const reloadBtn = document.getElementById("reload-btn");
 
     let currentApp = null;
+    let collapseTimer = null;
 
-    function loadApp(app) {
+    function expandSidebar() {
+      clearTimeout(collapseTimer);
+      sidebar.classList.remove("collapsed");
+    }
+
+    function collapseSidebar(delay = 300) {
+      clearTimeout(collapseTimer);
+      collapseTimer = setTimeout(() => {
+        sidebar.classList.add("collapsed");
+      }, delay);
+    }
+
+    // 滑鼠移到側邊欄或小標籤時自動展開
+    sidebar.addEventListener("mouseenter", expandSidebar);
+    sidebarTab.addEventListener("mouseenter", expandSidebar);
+
+    // 滑鼠離開側邊欄時自動慢慢縮回去
+    sidebar.addEventListener("mouseleave", () => collapseSidebar(350));
+
+    // 上方列「☰ 切換工具」按鈕也支援點擊展開
+    menuTriggerBtn.addEventListener("click", expandSidebar);
+
+    function loadApp(app, autoCollapse = true) {
       currentApp = app;
 
-      // 切換左側選單高亮狀態
       document.querySelectorAll(".nav-item").forEach(btn => {
         btn.classList.toggle("active", btn.dataset.id === app.id);
       });
 
-      // 更新網頁內容、標題與外部連結
       appFrame.src = app.url;
       currentTitle.textContent = app.name;
       openExtBtn.href = app.url;
       document.title = `${app.name.replace(/^[^\s]+\s/, "")} | PTW 作業整合平台`;
-
-      // 同步網址錨點 (#id)，方便團隊成員複製特定工具的網址分享給同事
       history.replaceState(null, "", "#" + app.id);
+
+      // 選完之後自動往左縮進去
+      if (autoCollapse) {
+        collapseSidebar(300);
+      }
     }
 
-    // 動態生成左側選單按鈕
+    // 動態生成選單按鈕
     APPS.forEach(app => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "nav-item";
       btn.dataset.id = app.id;
       btn.textContent = app.name;
-      btn.addEventListener("click", () => loadApp(app));
+      btn.addEventListener("click", () => loadApp(app, true));
       navList.appendChild(btn);
     });
 
-    // 右上角「重新載入」按鈕功能（僅重整子工具，不重整整個外框）
+    // 重新載入目前工具
     reloadBtn.addEventListener("click", () => {
       if (currentApp) {
         appFrame.src = currentApp.url;
       }
     });
 
-    // 網址列錨點變更時自動切換（支援瀏覽器上一頁/下一頁或手動改 #hash）
+    // 網址列錨點變更時自動切換
     window.addEventListener("hashchange", () => {
       const hash = window.location.hash.replace("#", "");
       const target = APPS.find(a => a.id === hash);
       if (target && (!currentApp || target.id !== currentApp.id)) {
-        loadApp(target);
+        loadApp(target, true);
       }
     });
 
-    // 初始化載入：優先讀取網址上的 #id，若無則預設開啟第一個工具
+    // 初始化載入：開啟預設工具後，停留 1.2 秒讓使用者看清選單，接著自動收合
     const initialHash = window.location.hash.replace("#", "");
     const defaultApp = APPS.find(a => a.id === initialHash) || APPS[0];
     if (defaultApp) {
-      loadApp(defaultApp);
+      loadApp(defaultApp, false);
+      collapseSidebar(1200);
     }
   </script>
 </body>
