@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PTW 團隊作業系統整合平台</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #f3f4f6;
+    }
+
+    /* 左側導覽列 */
+    .sidebar {
+      width: 230px;
+      background-color: #1e293b;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .brand {
+      padding: 20px 18px;
+      font-size: 16px;
+      font-weight: bold;
+      border-bottom: 1px solid #334155;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-list {
+      flex: 1;
+      padding: 12px 10px;
+      overflow-y: auto;
+    }
+    .nav-item {
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: none;
+      color: #cbd5e1;
+      padding: 12px 14px;
+      margin-bottom: 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav-item:hover { background-color: #334155; color: #ffffff; }
+    .nav-item.active { background-color: #2563eb; color: #ffffff; font-weight: 600; }
+
+    /* 右側主內容區 */
+    .main-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .topbar {
+      height: 50px;
+      background-color: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .current-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    .topbar-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .action-btn {
+      font-size: 13px;
+      color: #475569;
+      background-color: #ffffff;
+      text-decoration: none;
+      padding: 6px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .action-btn:hover { background-color: #f1f5f9; color: #0f172a; }
+
+    /* 網頁內嵌區 */
+    .frame-wrapper {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      background-color: #ffffff;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    /* 手機與小螢幕自適應 */
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      .sidebar { width: 100%; height: auto; }
+      .brand { padding: 12px 16px; }
+      .nav-list { display: flex; overflow-x: auto; padding: 8px 12px; gap: 6px; }
+      .nav-item { width: auto; white-space: nowrap; margin-bottom: 0; padding: 8px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 左側選單 -->
+  <aside class="sidebar">
+    <div class="brand">🛠️ PTW 作業整合平台</div>
+    <nav class="nav-list" id="nav-list"></nav>
+  </aside>
+
+  <!-- 右側顯示區 -->
+  <main class="main-area">
+    <header class="topbar">
+      <span class="current-title" id="current-title">載入中...</span>
+      <div class="topbar-actions">
+        <button type="button" class="action-btn" id="reload-btn" title="重新整理目前工具">↻ 重新載入</button>
+        <a href="#" target="_blank" rel="noopener noreferrer" class="action-btn" id="open-ext-btn">↗ 在新分頁開啟</a>
+      </div>
+    </header>
+    <div class="frame-wrapper">
+      <iframe id="app-frame" src="" title="系統工具視窗"></iframe>
+    </div>
+  </main>
+
+  <script>
+    // =========================================================================
+    // 【未來擴充設定區】
+    // 以後要新增、修改名稱或調整順序，只需要編輯這個 APPS 陣列即可！
+    // =========================================================================
+    const APPS = [
+      {
+        id: "manpower",
+        name: "👥 台灣人力管理",
+        url: "https://ptwjimmylin.github.io/ptw-taiwan-manpower/"
+      },
+      {
+        id: "parts",
+        name: "📋 零件清單檢查",
+        url: "https://ptwjimmylin.github.io/parts-list-check/"
+      },
+      {
+        id: "hw",
+        name: "⚙️ HW 系統工具",
+        url: "https://ptwjimmylin.github.io/HW/"
+      }
+      // 【新增範例】：未來有新網頁時，複製下面這行格式貼在上面項目後方（記得前一個結尾要加逗號）
+      // ,{ id: "new-tool", name: "📦 新工具名稱", url: "https://ptwjimmylin.github.io/你的新專案名稱/" }
+    ];
+
+    // =========================================================================
+    // 【系統核心程式】以下無需修改
+    // =========================================================================
+    const navList = document.getElementById("nav-list");
+    const appFrame = document.getElementById("app-frame");
+    const currentTitle = document.getElementById("current-title");
+    const openExtBtn = document.getElementById("open-ext-btn");
+    const reloadBtn = document.getElementById("reload-btn");
+
+    let currentApp = null;
+
+    function loadApp(app) {
+      currentApp = app;
+
+      // 切換左側選單高亮狀態
+      document.querySelectorAll(".nav-item").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.id === app.id);
+      });
+
+      // 更新網頁內容、標題與外部連結
+      appFrame.src = app.url;
+      currentTitle.textContent = app.name;
+      openExtBtn.href = app.url;
+      document.title = `${app.name.replace(/^[^\s]+\s/, "")} | PTW 作業整合平台`;
+
+      // 同步網址錨點 (#id)，方便團隊成員複製特定工具的網址分享給同事
+      history.replaceState(null, "", "#" + app.id);
+    }
+
+    // 動態生成左側選單按鈕
+    APPS.forEach(app => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "nav-item";
+      btn.dataset.id = app.id;
+      btn.textContent = app.name;
+      btn.addEventListener("click", () => loadApp(app));
+      navList.appendChild(btn);
+    });
+
+    // 右上角「重新載入」按鈕功能（僅重整子工具，不重整整個外框）
+    reloadBtn.addEventListener("click", () => {
+      if (currentApp) {
+        appFrame.src = currentApp.url;
+      }
+    });
+
+    // 網址列錨點變更時自動切換（支援瀏覽器上一頁/下一頁或手動改 #hash）
+    window.addEventListener("hashchange", () => {
+      const hash = window.location.hash.replace("#", "");
+      const target = APPS.find(a => a.id === hash);
+      if (target && (!currentApp || target.id !== currentApp.id)) {
+        loadApp(target);
+      }
+    });
+
+    // 初始化載入：優先讀取網址上的 #id，若無則預設開啟第一個工具
+    const initialHash = window.location.hash.replace("#", "");
+    const defaultApp = APPS.find(a => a.id === initialHash) || APPS[0];
+    if (defaultApp) {
+      loadApp(defaultApp);
+    }
+  </script>
+</body>
+</html>
